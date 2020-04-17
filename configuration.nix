@@ -1,6 +1,9 @@
 { config, pkgs, ... }:
 let
-  steam_autostart = (pkgs.makeAutostartItem { name = "steam"; package = pkgs.steam; });
+  unstable = import (import ./nixpkgs-src.nix).unstable { config = {allowUnfree = true; }; };
+  #my_steam = (pkgs.steam.override { nativeOnly = true; });
+  my_steam = unstable.steam;
+  steam_autostart = (pkgs.makeAutostartItem { name = "steam"; package = my_steam; });
 in
 {
   imports =
@@ -9,6 +12,7 @@ in
     ];
 
   nixpkgs.config.allowUnfree = true;
+  nixpkgs.config.allowBroken = true;
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
@@ -25,8 +29,9 @@ in
   environment.systemPackages = with pkgs; [
     wget vim htop
     # GAMING
-    steam
+    my_steam
     steam_autostart
+    steam-run
   ];
 
   # enable ssh
@@ -45,10 +50,13 @@ in
 
   # Bluetooth
   hardware.bluetooth.enable = true;
+  
 
   # Enable sound.
   sound.enable = true;
   hardware.pulseaudio.enable = true;
+  hardware.pulseaudio.package = pkgs.pulseaudioFull;
+  hardware.pulseaudio.extraModules = [ pkgs.pulseaudio-modules-bt ];
 
   # Enable the X11 windowing system.
   services.xserver.enable = true;
@@ -86,5 +94,8 @@ in
 
   # timezone
   time.timeZone = "Asia/Bangkok";
+
+  systemd.extraConfig = "DefaultLimitNOFILE=1048576";
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 }
 
